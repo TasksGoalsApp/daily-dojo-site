@@ -4,6 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import TaskCard from "./TaskCard";
 import AddTaskDialog from "./AddTaskDialog";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 
 interface Subtask {
   id: string;
@@ -15,12 +24,20 @@ export interface Task {
   id: string;
   title: string;
   day: string;
+  hour: number; // 24-hour format (e.g., 9 for 9 AM, 14 for 2 PM)
   priority: "low" | "medium" | "high";
   completed: boolean;
   subtasks: Subtask[];
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 8 AM to 10 PM
+
+const formatHour = (hour: number) => {
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+  return `${displayHour} ${period}`;
+};
 
 // Mock data for demonstration
 const initialTasks: Task[] = [
@@ -28,6 +45,7 @@ const initialTasks: Task[] = [
     id: "1",
     title: "Team Meeting",
     day: "Monday",
+    hour: 9,
     priority: "high",
     completed: false,
     subtasks: [
@@ -39,6 +57,7 @@ const initialTasks: Task[] = [
     id: "2",
     title: "Project Documentation",
     day: "Tuesday",
+    hour: 14,
     priority: "medium",
     completed: false,
     subtasks: [
@@ -50,6 +69,7 @@ const initialTasks: Task[] = [
     id: "3",
     title: "Code Review",
     day: "Wednesday",
+    hour: 10,
     priority: "high",
     completed: true,
     subtasks: [],
@@ -58,6 +78,7 @@ const initialTasks: Task[] = [
     id: "4",
     title: "Workout Session",
     day: "Thursday",
+    hour: 18,
     priority: "low",
     completed: false,
     subtasks: [
@@ -71,13 +92,24 @@ const WeeklyTaskTable = () => {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string>("");
+  const [selectedHour, setSelectedHour] = useState<number>(9);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
-  const getTasksForDay = (day: string) => {
-    return tasks.filter((task) => task.day === day);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const getTaskForCell = (day: string, hour: number) => {
+    return tasks.find((task) => task.day === day && task.hour === hour);
   };
 
-  const handleAddTask = (day: string) => {
+  const handleAddTask = (day: string, hour: number) => {
     setSelectedDay(day);
+    setSelectedHour(hour);
     setIsDialogOpen(true);
   };
 
@@ -118,54 +150,161 @@ const WeeklyTaskTable = () => {
     setTasks(tasks.filter((task) => task.id !== taskId));
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = tasks.find((t) => t.id === event.active.id);
+    setActiveTask(task || null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTask(null);
+
+    if (!over) return;
+
+    const taskId = active.id as string;
+    const [day, hourStr] = (over.id as string).split("-");
+    const hour = parseInt(hourStr);
+
+    // Check if the cell is already occupied
+    const existingTask = getTaskForCell(day, hour);
+    if (existingTask && existingTask.id !== taskId) {
+      return; // Don't allow dropping on occupied cells
+    }
+
+    setTasks(
+      tasks.map((task) =>
+        task.id === taskId ? { ...task, day, hour } : task
+      )
+    );
+  };
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
-        {DAYS.map((day) => (
-          <Card
-            key={day}
-            className="p-4 bg-card border-border hover:shadow-md transition-shadow"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg text-foreground">{day}</h3>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-primary hover:text-primary hover:bg-secondary"
-                  onClick={() => handleAddTask(day)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="space-y-3 min-h-[200px]">
-                {getTasksForDay(day).map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onToggle={handleToggleTask}
-                    onToggleSubtask={handleToggleSubtask}
-                    onDelete={handleDeleteTask}
-                  />
-                ))}
-                {getTasksForDay(day).length === 0 && (
-                  <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
-                    No tasks yet
-                  </div>
-                )}
-              </div>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="overflow-x-auto">
+          <div className="min-w-[1200px]">
+            {/* Header Row */}
+            <div className="grid grid-cols-8 gap-2 mb-2">
+              <div className="w-20 text-sm font-semibold text-muted-foreground">Time</div>
+              {DAYS.map((day) => (
+                <div key={day} className="text-center">
+                  <h3 className="font-semibold text-sm text-foreground">{day}</h3>
+                </div>
+              ))}
             </div>
-          </Card>
-        ))}
-      </div>
+
+            {/* Time Grid */}
+            <div className="space-y-1">
+              {HOURS.map((hour) => (
+                <div key={hour} className="grid grid-cols-8 gap-2">
+                  {/* Hour Label */}
+                  <div className="w-20 flex items-center justify-end pr-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {formatHour(hour)}
+                    </span>
+                  </div>
+
+                  {/* Day Cells */}
+                  {DAYS.map((day) => {
+                    const task = getTaskForCell(day, hour);
+                    const cellId = `${day}-${hour}`;
+
+                    return (
+                      <TimeCell
+                        key={cellId}
+                        id={cellId}
+                        task={task}
+                        onAddTask={() => handleAddTask(day, hour)}
+                        onToggle={handleToggleTask}
+                        onToggleSubtask={handleToggleSubtask}
+                        onDelete={handleDeleteTask}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <DragOverlay>
+          {activeTask ? (
+            <div className="opacity-80">
+              <TaskCard
+                task={activeTask}
+                onToggle={() => {}}
+                onToggleSubtask={() => {}}
+                onDelete={() => {}}
+                isDragging
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       <AddTaskDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onCreateTask={handleCreateTask}
         selectedDay={selectedDay}
+        selectedHour={selectedHour}
       />
+    </div>
+  );
+};
+
+// Time Cell Component
+interface TimeCellProps {
+  id: string;
+  task?: Task;
+  onAddTask: () => void;
+  onToggle: (taskId: string) => void;
+  onToggleSubtask: (taskId: string, subtaskId: string) => void;
+  onDelete: (taskId: string) => void;
+}
+
+const TimeCell = ({
+  id,
+  task,
+  onAddTask,
+  onToggle,
+  onToggleSubtask,
+  onDelete,
+}: TimeCellProps) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div
+      id={id}
+      className="relative min-h-[80px] border border-border rounded-md bg-card hover:bg-secondary/20 transition-colors"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {task ? (
+        <TaskCard
+          task={task}
+          onToggle={onToggle}
+          onToggleSubtask={onToggleSubtask}
+          onDelete={onDelete}
+        />
+      ) : (
+        <>
+          {isHovered && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-primary hover:text-primary hover:bg-secondary opacity-0 hover:opacity-100 transition-opacity"
+              onClick={onAddTask}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          )}
+        </>
+      )}
     </div>
   );
 };

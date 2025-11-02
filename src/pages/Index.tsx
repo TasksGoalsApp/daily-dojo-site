@@ -16,7 +16,7 @@ const Index = () => {
             Weekly Task Manager
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Organize your week with ease. Create tasks, add subtasks, and track your progress all in one place.
+            Plan your week hour by hour. Drag tasks between time slots, add subtasks, and stay organized.
           </p>
         </header>
 
@@ -27,7 +27,7 @@ const Index = () => {
 
         {/* Footer */}
         <footer className="mt-12 text-center text-sm text-muted-foreground">
-          <p>Click the + button on any day to add a new task</p>
+          <p>Hover over time slots to add tasks • Drag tasks to reschedule</p>
         </footer>
       </div>
     </div>

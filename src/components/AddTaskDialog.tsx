@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -25,16 +25,31 @@ interface AddTaskDialogProps {
   onClose: () => void;
   onCreateTask: (task: Omit<Task, "id">) => void;
   selectedDay: string;
+  selectedHour: number;
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 8 AM to 10 PM
 
-const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay }: AddTaskDialogProps) => {
+const formatHour = (hour: number) => {
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+  return `${displayHour} ${period}`;
+};
+
+const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay, selectedHour }: AddTaskDialogProps) => {
   const [title, setTitle] = useState("");
   const [day, setDay] = useState(selectedDay);
+  const [hour, setHour] = useState(selectedHour);
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [subtasks, setSubtasks] = useState<Array<{ id: string; title: string; completed: boolean }>>([]);
   const [currentSubtask, setCurrentSubtask] = useState("");
+
+  // Update day and hour when props change
+  useEffect(() => {
+    setDay(selectedDay);
+    setHour(selectedHour);
+  }, [selectedDay, selectedHour]);
 
   const handleAddSubtask = () => {
     if (currentSubtask.trim()) {
@@ -59,6 +74,7 @@ const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay }: AddTaskDi
       onCreateTask({
         title: title.trim(),
         day,
+        hour,
         priority,
         completed: false,
         subtasks,
@@ -66,6 +82,7 @@ const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay }: AddTaskDi
       // Reset form
       setTitle("");
       setDay(selectedDay);
+      setHour(selectedHour);
       setPriority("medium");
       setSubtasks([]);
       setCurrentSubtask("");
@@ -115,18 +132,34 @@ const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay }: AddTaskDi
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
-              <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
-                <SelectTrigger id="priority" className="bg-background">
+              <Label htmlFor="hour">Time</Label>
+              <Select value={hour.toString()} onValueChange={(v) => setHour(parseInt(v))}>
+                <SelectTrigger id="hour" className="bg-background">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-popover">
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
+                <SelectContent className="bg-popover max-h-[200px]">
+                  {HOURS.map((h) => (
+                    <SelectItem key={h} value={h.toString()}>
+                      {formatHour(h)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="priority">Priority</Label>
+            <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
+              <SelectTrigger id="priority" className="bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover">
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
