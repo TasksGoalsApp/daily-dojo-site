@@ -1,9 +1,12 @@
 import WeeklyTaskTable from "@/components/WeeklyTaskTable";
+import Navigation from "@/components/Navigation";
 import { Calendar } from "lucide-react";
 
-const Index = () => {
+const Tasks = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
+      <Navigation />
+      
       <div className="container mx-auto px-4 py-8 max-w-[1600px]">
         {/* Header */}
         <header className="mb-8 text-center space-y-4">
@@ -34,4 +37,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Tasks;
