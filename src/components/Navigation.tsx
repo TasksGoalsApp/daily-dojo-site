@@ -60,10 +60,15 @@ const Navigation = () => {
             <div className="ml-4 flex items-center gap-2 border-l border-border pl-4">
               {user ? (
                 <>
-                  <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md bg-secondary text-sm">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-foreground font-medium">{user.username}</span>
-                  </div>
+                  <Button 
+                    onClick={() => navigate('/profile')} 
+                    variant="ghost" 
+                    size="sm"
+                    className="hidden md:flex items-center gap-2"
+                  >
+                    <User className="h-4 w-4" />
+                    <span>{user.username}</span>
+                  </Button>
                   <Button onClick={handleLogout} variant="ghost" size="sm">
                     <LogOut className="h-4 w-4" />
                     <span className="hidden sm:inline ml-2">Logout</span>

@@ -10,6 +10,7 @@ import Goals from "./pages/Goals";
 import Habits from "./pages/Habits";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/goals" element={<Goals />} />
             <Route path="/habits" element={<Habits />} />
