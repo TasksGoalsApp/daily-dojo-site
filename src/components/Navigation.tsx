@@ -1,14 +1,24 @@
-import { NavLink } from "react-router-dom";
-import { Home, Calendar, Target, TrendingUp } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { Home, Calendar, Target, TrendingUp, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "./ui/button";
 
 const Navigation = () => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
   const navItems = [
     { title: "Home", path: "/", icon: Home },
     { title: "Tasks", path: "/tasks", icon: Calendar },
     { title: "Goals", path: "/goals", icon: Target },
     { title: "Habits", path: "/habits", icon: TrendingUp },
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md">
@@ -24,26 +34,52 @@ const Navigation = () => {
             </span>
           </NavLink>
 
-          {/* Nav Links */}
-          <div className="flex items-center gap-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  )
-                }
-              >
-                <item.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{item.title}</span>
-              </NavLink>
-            ))}
+          {/* Nav Links and Auth */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    )
+                  }
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{item.title}</span>
+                </NavLink>
+              ))}
+            </div>
+            
+            <div className="ml-4 flex items-center gap-2 border-l border-border pl-4">
+              {user ? (
+                <>
+                  <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md bg-secondary text-sm">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-foreground font-medium">{user.username}</span>
+                  </div>
+                  <Button onClick={handleLogout} variant="ghost" size="sm">
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-2">Logout</span>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button onClick={() => navigate('/login')} variant="ghost" size="sm">
+                    Login
+                  </Button>
+                  <Button onClick={() => navigate('/register')} size="sm">
+                    Sign Up
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
