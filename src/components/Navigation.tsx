@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 
 const Navigation = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
 
   const navItems = [
     { title: "Home", path: "/", icon: Home },
@@ -67,7 +67,7 @@ const Navigation = () => {
                     className="hidden md:flex items-center gap-2"
                   >
                     <User className="h-4 w-4" />
-                    <span>{user.username}</span>
+                    <span>{profile?.username || user.email}</span>
                   </Button>
                   <Button onClick={handleLogout} variant="ghost" size="sm">
                     <LogOut className="h-4 w-4" />

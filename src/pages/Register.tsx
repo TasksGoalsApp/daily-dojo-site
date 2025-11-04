@@ -87,13 +87,13 @@ const Register = () => {
       });
       toast({
         title: 'Success',
-        description: 'Account created successfully!',
+        description: 'Account created successfully! You can now log in.',
       });
-      navigate('/tasks');
-    } catch (error) {
+      navigate('/login');
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Registration failed',
+        description: error.message || 'Registration failed',
         variant: 'destructive',
       });
     } finally {

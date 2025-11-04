@@ -9,9 +9,10 @@ import { useToast } from '@/hooks/use-toast';
 import { User, Save, Edit, Trash2, Key } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Navigation from '@/components/Navigation';
+import { supabase } from '@/integrations/supabase/client';
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -19,9 +20,9 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    dateOfBirth: user?.dateOfBirth || '',
+    name: profile?.name || '',
+    username: profile?.username || '',
+    dateOfBirth: profile?.date_of_birth || '',
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -36,13 +37,23 @@ const Profile = () => {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        name: profile.name || '',
+        username: profile.username || '',
+        dateOfBirth: profile.date_of_birth || '',
+      });
+    }
+  }, [profile]);
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim() || !formData.email.trim()) {
+    if (!formData.name.trim() || !formData.username.trim()) {
       toast({
         title: 'Error',
-        description: 'Name and email are required',
+        description: 'Name and username are required',
         variant: 'destructive',
       });
       return;
@@ -50,29 +61,26 @@ const Profile = () => {
 
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(formData),
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: formData.name,
+          username: formData.username,
+          date_of_birth: formData.dateOfBirth || null,
+        })
+        .eq('user_id', user!.id);
 
-      if (!response.ok) {
-        throw new Error('Update failed');
-      }
+      if (error) throw error;
 
       toast({
         title: 'Success',
         description: 'Profile updated successfully',
       });
       setIsEditing(false);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Failed to update profile',
+        description: error.message || 'Failed to update profile',
         variant: 'destructive',
       });
     } finally {
@@ -103,22 +111,11 @@ const Profile = () => {
 
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/user/change-password', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword,
-        }),
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
       });
 
-      if (!response.ok) {
-        throw new Error('Password change failed');
-      }
+      if (error) throw error;
 
       toast({
         title: 'Success',
@@ -126,10 +123,10 @@ const Profile = () => {
       });
       setIsChangingPassword(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Failed to change password',
+        description: error.message || 'Failed to change password',
         variant: 'destructive',
       });
     } finally {
@@ -140,36 +137,16 @@ const Profile = () => {
   const handleDeleteAccount = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/user/delete', {
-        method: 'DELETE',
-        headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Account deletion failed');
-      }
-
       toast({
-        title: 'Account Deleted',
-        description: 'Your account has been permanently deleted',
-      });
-      logout();
-      navigate('/');
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete account',
-        variant: 'destructive',
+        title: 'Feature Not Available',
+        description: 'Please contact support to delete your account',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!user) return null;
+  if (!user || !profile) return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -213,21 +190,21 @@ const Profile = () => {
                     <Label htmlFor="username">Username</Label>
                     <Input
                       id="username"
-                      value={user.username}
-                      disabled
-                      className="bg-muted"
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      disabled={isLoading}
                     />
-                    <p className="text-xs text-muted-foreground">Username cannot be changed</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      disabled={isLoading}
+                      value={user.email}
+                      disabled
+                      className="bg-muted"
                     />
+                    <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dateOfBirth">Date of Birth</Label>
@@ -250,9 +227,9 @@ const Profile = () => {
                       onClick={() => {
                         setIsEditing(false);
                         setFormData({
-                          name: user?.name || '',
-                          email: user?.email || '',
-                          dateOfBirth: user?.dateOfBirth || '',
+                          name: profile?.name || '',
+                          username: profile?.username || '',
+                          dateOfBirth: profile?.date_of_birth || '',
                         });
                       }}
                       disabled={isLoading}
@@ -265,20 +242,22 @@ const Profile = () => {
                 <div className="space-y-4">
                   <div>
                     <Label className="text-muted-foreground">Full Name</Label>
-                    <p className="text-lg">{user.name}</p>
+                    <p className="text-lg">{profile.name}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Username</Label>
-                    <p className="text-lg">{user.username}</p>
+                    <p className="text-lg">{profile.username}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Email</Label>
                     <p className="text-lg">{user.email}</p>
                   </div>
-                  <div>
-                    <Label className="text-muted-foreground">Date of Birth</Label>
-                    <p className="text-lg">{new Date(user.dateOfBirth).toLocaleDateString()}</p>
-                  </div>
+                  {profile.date_of_birth && (
+                    <div>
+                      <Label className="text-muted-foreground">Date of Birth</Label>
+                      <p className="text-lg">{new Date(profile.date_of_birth).toLocaleDateString()}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -300,16 +279,6 @@ const Profile = () => {
             <CardContent>
               {isChangingPassword ? (
                 <form onSubmit={handleChangePassword} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Current Password</Label>
-                    <Input
-                      id="currentPassword"
-                      type="password"
-                      value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                      disabled={isLoading}
-                    />
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="newPassword">New Password</Label>
                     <Input
@@ -381,7 +350,7 @@ const Profile = () => {
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
                       This action cannot be undone. This will permanently delete your account
-                      and remove all your data from our servers. This action is required under GDPR regulations.
+                      and remove all your data from our servers.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
