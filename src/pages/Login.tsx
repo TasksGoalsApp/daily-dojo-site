@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LogIn, ArrowLeft } from 'lucide-react';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
@@ -19,7 +19,7 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username.trim() || !password) {
+    if (!email.trim() || !password) {
       toast({
         title: 'Error',
         description: 'Please fill in all fields',
@@ -30,7 +30,7 @@ const Login = () => {
 
     setIsLoading(true);
     try {
-      await login(username, password);
+      await login(email, password);
       toast({
         title: 'Success',
         description: 'Welcome back!',
@@ -68,19 +68,19 @@ const Login = () => {
           </div>
           <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
           <CardDescription>
-            Enter your username and password to access your account
+            Enter your email and password to access your account
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
               />
             </div>
