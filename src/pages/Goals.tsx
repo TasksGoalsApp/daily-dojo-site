@@ -107,8 +107,9 @@ const Goals = () => {
         </div>
 
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-4 mb-6">
+          <TabsList className="grid w-full max-w-2xl grid-cols-5 mb-6">
             <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="in_progress">In Progress</TabsTrigger>
             <TabsTrigger value="personal">Personal</TabsTrigger>
             <TabsTrigger value="professional">Professional</TabsTrigger>
             <TabsTrigger value="completed">Completed</TabsTrigger>
@@ -122,6 +123,18 @@ const Goals = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {goals.map((goal) => (
+                  <GoalCard key={goal.id} goal={goal} onUpdate={fetchGoals} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="in_progress" className="space-y-4">
+            {inProgressGoals.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No goals in progress yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {inProgressGoals.map((goal) => (
                   <GoalCard key={goal.id} goal={goal} onUpdate={fetchGoals} />
                 ))}
               </div>

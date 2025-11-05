@@ -1,11 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Target, Calendar, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface Goal {
   id: string;
@@ -24,6 +26,9 @@ interface GoalCardProps {
 }
 
 const GoalCard = ({ goal, onUpdate }: GoalCardProps) => {
+  const [isEditingProgress, setIsEditingProgress] = useState(false);
+  const [localProgress, setLocalProgress] = useState(goal.progress);
+
   const handleDelete = async () => {
     const { error } = await supabase
       .from("goals")
@@ -65,6 +70,43 @@ const GoalCard = ({ goal, onUpdate }: GoalCardProps) => {
         title: "Success",
         description: "Goal status updated",
       });
+      onUpdate();
+    }
+  };
+
+  const handleProgressChange = async (value: number[]) => {
+    const newProgress = value[0];
+    setLocalProgress(newProgress);
+    
+    const updateData: any = { progress: newProgress };
+    if (newProgress === 100 && goal.status === "in_progress") {
+      updateData.status = "completed";
+    }
+    
+    const { error } = await supabase
+      .from("goals")
+      .update(updateData)
+      .eq("id", goal.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update progress",
+        variant: "destructive",
+      });
+      setLocalProgress(goal.progress);
+    } else {
+      if (newProgress === 100 && goal.status === "in_progress") {
+        toast({
+          title: "Goal Completed! 🎉",
+          description: "Your goal has been automatically marked as completed",
+        });
+      } else {
+        toast({
+          title: "Progress Updated",
+          description: `Progress set to ${newProgress}%`,
+        });
+      }
       onUpdate();
     }
   };
@@ -143,9 +185,29 @@ const GoalCard = ({ goal, onUpdate }: GoalCardProps) => {
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Progress</span>
-            <span className="font-semibold">{goal.progress}%</span>
+            <button 
+              onClick={() => setIsEditingProgress(!isEditingProgress)}
+              className="font-semibold hover:text-primary transition-colors"
+            >
+              {localProgress}%
+            </button>
           </div>
-          <Progress value={goal.progress} className="h-2" />
+          {isEditingProgress ? (
+            <div className="space-y-2">
+              <Slider
+                value={[localProgress]}
+                onValueChange={handleProgressChange}
+                max={100}
+                step={1}
+                className="cursor-pointer"
+              />
+              <p className="text-xs text-muted-foreground text-center">
+                Drag to adjust progress
+              </p>
+            </div>
+          ) : (
+            <Progress value={localProgress} className="h-2" />
+          )}
         </div>
         
         {goal.target_date && (
