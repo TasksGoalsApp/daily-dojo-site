@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Plus, X } from "lucide-react";
 import { Task } from "./WeeklyTaskTable";
 
@@ -44,6 +45,7 @@ const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay, selectedHou
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [subtasks, setSubtasks] = useState<Array<{ id: string; title: string; completed: boolean }>>([]);
   const [currentSubtask, setCurrentSubtask] = useState("");
+  const [isWeekly, setIsWeekly] = useState(false);
 
   // Update day and hour when props change
   useEffect(() => {
@@ -70,14 +72,15 @@ const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay, selectedHou
   };
 
   const handleSubmit = () => {
-    if (title.trim() && day) {
+    if (title.trim() && (day || isWeekly)) {
       onCreateTask({
         title: title.trim(),
-        day,
+        day: isWeekly ? "All Days" : day,
         hour,
         priority,
         completed: false,
         subtasks,
+        isWeekly,
       });
       // Reset form
       setTitle("");
@@ -86,6 +89,7 @@ const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay, selectedHou
       setPriority("medium");
       setSubtasks([]);
       setCurrentSubtask("");
+      setIsWeekly(false);
       onClose();
     }
   };
@@ -114,12 +118,32 @@ const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay, selectedHou
             />
           </div>
 
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="weekly">Apply to whole week</Label>
+              <Switch
+                id="weekly"
+                checked={isWeekly}
+                onCheckedChange={setIsWeekly}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isWeekly 
+                ? "This task will appear on all days at the selected time" 
+                : "This task will appear only on the selected day"}
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="day">Day</Label>
-              <Select value={day} onValueChange={setDay}>
+              <Select 
+                value={day} 
+                onValueChange={setDay}
+                disabled={isWeekly}
+              >
                 <SelectTrigger id="day" className="bg-background">
-                  <SelectValue placeholder="Select day" />
+                  <SelectValue placeholder={isWeekly ? "All Days" : "Select day"} />
                 </SelectTrigger>
                 <SelectContent className="bg-popover">
                   {DAYS.map((d) => (
@@ -212,7 +236,7 @@ const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay, selectedHou
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!title.trim() || !day}
+            disabled={!title.trim() || (!day && !isWeekly)}
             className="bg-gradient-to-r from-primary to-primary-glow hover:opacity-90"
           >
             Create Task
