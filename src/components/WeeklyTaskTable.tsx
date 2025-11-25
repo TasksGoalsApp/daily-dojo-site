@@ -95,6 +95,7 @@ const WeeklyTaskTable = () => {
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedHour, setSelectedHour] = useState<number>(9);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -117,11 +118,30 @@ const WeeklyTaskTable = () => {
   };
 
   const handleCreateTask = (newTask: Omit<Task, "id">) => {
-    const task: Task = {
-      ...newTask,
-      id: Date.now().toString(),
-    };
-    setTasks([...tasks, task]);
+    if (editingTask) {
+      // Update existing task
+      setTasks(
+        tasks.map((task) =>
+          task.id === editingTask.id ? { ...newTask, id: task.id } : task
+        )
+      );
+      setEditingTask(null);
+    } else {
+      // Create new task
+      const task: Task = {
+        ...newTask,
+        id: Date.now().toString(),
+      };
+      setTasks([...tasks, task]);
+    }
+  };
+
+  const handleEditTask = (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (task) {
+      setEditingTask(task);
+      setIsDialogOpen(true);
+    }
   };
 
   const handleToggleTask = (taskId: string) => {
@@ -227,6 +247,7 @@ const WeeklyTaskTable = () => {
                         onToggle={handleToggleTask}
                         onToggleSubtask={handleToggleSubtask}
                         onDelete={handleDeleteTask}
+                        onEdit={handleEditTask}
                       />
                     );
                   })}
@@ -244,6 +265,7 @@ const WeeklyTaskTable = () => {
                 onToggle={() => {}}
                 onToggleSubtask={() => {}}
                 onDelete={() => {}}
+                onEdit={() => {}}
                 isDragging
               />
             </div>
@@ -253,10 +275,14 @@ const WeeklyTaskTable = () => {
 
       <AddTaskDialog
         isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
+        onClose={() => {
+          setIsDialogOpen(false);
+          setEditingTask(null);
+        }}
         onCreateTask={handleCreateTask}
         selectedDay={selectedDay}
         selectedHour={selectedHour}
+        editingTask={editingTask}
       />
     </div>
   );
@@ -270,6 +296,7 @@ interface TimeCellProps {
   onToggle: (taskId: string) => void;
   onToggleSubtask: (taskId: string, subtaskId: string) => void;
   onDelete: (taskId: string) => void;
+  onEdit: (taskId: string) => void;
 }
 
 const TimeCell = ({
@@ -279,6 +306,7 @@ const TimeCell = ({
   onToggle,
   onToggleSubtask,
   onDelete,
+  onEdit,
 }: TimeCellProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -295,6 +323,7 @@ const TimeCell = ({
           onToggle={onToggle}
           onToggleSubtask={onToggleSubtask}
           onDelete={onDelete}
+          onEdit={onEdit}
         />
       ) : (
         <>

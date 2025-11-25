@@ -27,6 +27,7 @@ interface AddTaskDialogProps {
   onCreateTask: (task: Omit<Task, "id">) => void;
   selectedDay: string;
   selectedHour: number;
+  editingTask?: Task | null;
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -38,7 +39,7 @@ const formatHour = (hour: number) => {
   return `${displayHour} ${period}`;
 };
 
-const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay, selectedHour }: AddTaskDialogProps) => {
+const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay, selectedHour, editingTask }: AddTaskDialogProps) => {
   const [title, setTitle] = useState("");
   const [day, setDay] = useState(selectedDay);
   const [hour, setHour] = useState(selectedHour);
@@ -47,11 +48,20 @@ const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay, selectedHou
   const [currentSubtask, setCurrentSubtask] = useState("");
   const [isWeekly, setIsWeekly] = useState(false);
 
-  // Update day and hour when props change
+  // Update form when editing a task
   useEffect(() => {
-    setDay(selectedDay);
-    setHour(selectedHour);
-  }, [selectedDay, selectedHour]);
+    if (editingTask) {
+      setTitle(editingTask.title);
+      setDay(editingTask.isWeekly ? "Monday" : editingTask.day);
+      setHour(editingTask.hour);
+      setPriority(editingTask.priority);
+      setSubtasks(editingTask.subtasks);
+      setIsWeekly(editingTask.isWeekly || false);
+    } else {
+      setDay(selectedDay);
+      setHour(selectedHour);
+    }
+  }, [editingTask, selectedDay, selectedHour]);
 
   const handleAddSubtask = () => {
     if (currentSubtask.trim()) {
@@ -99,10 +109,12 @@ const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay, selectedHou
       <DialogContent className="sm:max-w-[500px] bg-card">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-            Create New Task
+            {editingTask ? "Edit Task" : "Create New Task"}
           </DialogTitle>
           <DialogDescription>
-            Add a new task to your weekly schedule. You can also add subtasks to break it down.
+            {editingTask 
+              ? "Update your task details and save changes."
+              : "Add a new task to your weekly schedule. You can also add subtasks to break it down."}
           </DialogDescription>
         </DialogHeader>
 
@@ -239,7 +251,7 @@ const AddTaskDialog = ({ isOpen, onClose, onCreateTask, selectedDay, selectedHou
             disabled={!title.trim() || (!day && !isWeekly)}
             className="bg-gradient-to-r from-primary to-primary-glow hover:opacity-90"
           >
-            Create Task
+            {editingTask ? "Save Changes" : "Create Task"}
           </Button>
         </DialogFooter>
       </DialogContent>
