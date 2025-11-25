@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Trash2, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
+import { Trash2, ChevronDown, ChevronUp, GripVertical, Edit } from "lucide-react";
 import { Task } from "./WeeklyTaskTable";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -12,10 +12,11 @@ interface TaskCardProps {
   onToggle: (taskId: string) => void;
   onToggleSubtask: (taskId: string, subtaskId: string) => void;
   onDelete: (taskId: string) => void;
+  onEdit: (taskId: string) => void;
   isDragging?: boolean;
 }
 
-const TaskCard = ({ task, onToggle, onToggleSubtask, onDelete, isDragging = false }: TaskCardProps) => {
+const TaskCard = ({ task, onToggle, onToggleSubtask, onDelete, onEdit, isDragging = false }: TaskCardProps) => {
   const [expanded, setExpanded] = useState(false);
   
   const { attributes, listeners, setNodeRef: setDraggableRef, transform } = useDraggable({
@@ -97,6 +98,14 @@ const TaskCard = ({ task, onToggle, onToggleSubtask, onDelete, isDragging = fals
                   )}
                 </Button>
               )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 hover:text-primary"
+                onClick={() => onEdit(task.id)}
+              >
+                <Edit className="h-3 w-3" />
+              </Button>
               <Button
                 size="icon"
                 variant="ghost"
