@@ -28,6 +28,7 @@ export interface Task {
   priority: "low" | "medium" | "high";
   completed: boolean;
   subtasks: Subtask[];
+  isWeekly?: boolean; // If true, task appears on all days
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -104,7 +105,9 @@ const WeeklyTaskTable = () => {
   );
 
   const getTaskForCell = (day: string, hour: number) => {
-    return tasks.find((task) => task.day === day && task.hour === hour);
+    return tasks.find((task) => 
+      task.hour === hour && (task.day === day || task.isWeekly)
+    );
   };
 
   const handleAddTask = (day: string, hour: number) => {
@@ -173,7 +176,9 @@ const WeeklyTaskTable = () => {
 
     setTasks(
       tasks.map((task) =>
-        task.id === taskId ? { ...task, day, hour } : task
+        task.id === taskId 
+          ? { ...task, day, hour, isWeekly: false } // Convert weekly tasks to single day when moved
+          : task
       )
     );
   };
