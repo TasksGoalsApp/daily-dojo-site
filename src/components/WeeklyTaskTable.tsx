@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import TaskCard from "./TaskCard";
 import AddTaskDialog from "./AddTaskDialog";
 import {
@@ -13,6 +12,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { cn } from "@/lib/utils";
 
 interface Subtask {
   id: string;
@@ -24,23 +24,29 @@ export interface Task {
   id: string;
   title: string;
   day: string;
-  hour: number; // 24-hour format (e.g., 9 for 9 AM, 14 for 2 PM)
+  hour: number;
   priority: "low" | "medium" | "high";
   completed: boolean;
   subtasks: Subtask[];
-  isWeekly?: boolean; // If true, task appears on all days
+  isWeekly?: boolean;
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 8 AM to 10 PM
+const SHORT_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 8);
 
 const formatHour = (hour: number) => {
   const period = hour >= 12 ? "PM" : "AM";
   const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-  return `${displayHour} ${period}`;
+  return `${displayHour}:00 ${period}`;
 };
 
-// Mock data for demonstration
+const formatHourShort = (hour: number) => {
+  const period = hour >= 12 ? "p" : "a";
+  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+  return `${displayHour}${period}`;
+};
+
 const initialTasks: Task[] = [
   {
     id: "1",
@@ -97,42 +103,40 @@ const WeeklyTaskTable = () => {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
+  // Simple week navigation (visual only for now)
+  const [weekOffset, setWeekOffset] = useState(0);
+  const getWeekLabel = () => {
+    const now = new Date();
+    now.setDate(now.getDate() + weekOffset * 7);
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return `${fmt(monday)} – ${fmt(sunday)}`;
+  };
+
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
   const getTaskForCell = (day: string, hour: number) => {
-    return tasks.find((task) => 
-      task.hour === hour && (task.day === day || task.isWeekly)
-    );
+    return tasks.find((task) => task.hour === hour && (task.day === day || task.isWeekly));
   };
 
   const handleAddTask = (day: string, hour: number) => {
     setSelectedDay(day);
     setSelectedHour(hour);
+    setEditingTask(null);
     setIsDialogOpen(true);
   };
 
   const handleCreateTask = (newTask: Omit<Task, "id">) => {
     if (editingTask) {
-      // Update existing task
-      setTasks(
-        tasks.map((task) =>
-          task.id === editingTask.id ? { ...newTask, id: task.id } : task
-        )
-      );
+      setTasks(tasks.map((task) => (task.id === editingTask.id ? { ...newTask, id: task.id } : task)));
       setEditingTask(null);
     } else {
-      // Create new task
-      const task: Task = {
-        ...newTask,
-        id: Date.now().toString(),
-      };
-      setTasks([...tasks, task]);
+      setTasks([...tasks, { ...newTask, id: Date.now().toString() }]);
     }
   };
 
@@ -145,11 +149,7 @@ const WeeklyTaskTable = () => {
   };
 
   const handleToggleTask = (taskId: string) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
-    );
+    setTasks(tasks.map((task) => (task.id === taskId ? { ...task, completed: !task.completed } : task)));
   };
 
   const handleToggleSubtask = (taskId: string, subtaskId: string) => {
@@ -158,10 +158,8 @@ const WeeklyTaskTable = () => {
         task.id === taskId
           ? {
               ...task,
-              subtasks: task.subtasks.map((subtask) =>
-                subtask.id === subtaskId
-                  ? { ...subtask, completed: !subtask.completed }
-                  : subtask
+              subtasks: task.subtasks.map((st) =>
+                st.id === subtaskId ? { ...st, completed: !st.completed } : st
               ),
             }
           : task
@@ -174,86 +172,116 @@ const WeeklyTaskTable = () => {
   };
 
   const handleDragStart = (event: DragStartEvent) => {
-    const task = tasks.find((t) => t.id === event.active.id);
-    setActiveTask(task || null);
+    setActiveTask(tasks.find((t) => t.id === event.active.id) || null);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveTask(null);
-
     if (!over) return;
-
     const taskId = active.id as string;
     const [day, hourStr] = (over.id as string).split("-");
     const hour = parseInt(hourStr);
-
-    // Check if the cell is already occupied
     const existingTask = getTaskForCell(day, hour);
-    if (existingTask && existingTask.id !== taskId) {
-      return; // Don't allow dropping on occupied cells
-    }
-
-    setTasks(
-      tasks.map((task) =>
-        task.id === taskId 
-          ? { ...task, day, hour, isWeekly: false } // Convert weekly tasks to single day when moved
-          : task
-      )
-    );
+    if (existingTask && existingTask.id !== taskId) return;
+    setTasks(tasks.map((task) => (task.id === taskId ? { ...task, day, hour, isWeekly: false } : task)));
   };
 
+  const todayName = DAYS[((new Date().getDay() + 6) % 7)];
+
   return (
-    <div className="space-y-6">
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="overflow-x-auto">
-          <div className="min-w-[1200px]">
+    <div className="space-y-4">
+      {/* Week Navigation Bar */}
+      <div className="flex items-center justify-between bg-card rounded-xl border border-border p-3 shadow-sm">
+        <Button variant="ghost" size="icon" onClick={() => setWeekOffset(weekOffset - 1)}>
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <div className="text-center">
+          <p className="text-sm font-semibold text-foreground">{getWeekLabel()}</p>
+          {weekOffset !== 0 && (
+            <button
+              onClick={() => setWeekOffset(0)}
+              className="text-xs text-primary hover:underline"
+            >
+              Back to this week
+            </button>
+          )}
+        </div>
+        <Button variant="ghost" size="icon" onClick={() => setWeekOffset(weekOffset + 1)}>
+          <ChevronRight className="h-5 w-5" />
+        </Button>
+      </div>
+
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+          <div className="min-w-[900px]">
             {/* Header Row */}
-            <div className="grid grid-cols-8 gap-2 mb-2">
-              <div className="w-20 text-sm font-semibold text-muted-foreground">Time</div>
-              {DAYS.map((day) => (
-                <div key={day} className="text-center">
-                  <h3 className="font-semibold text-sm text-foreground">{day}</h3>
-                </div>
-              ))}
+            <div className="grid grid-cols-[72px_repeat(7,1fr)] border-b border-border bg-muted/50">
+              <div className="p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-center">
+                Time
+              </div>
+              {DAYS.map((day, i) => {
+                const isToday = day === todayName && weekOffset === 0;
+                return (
+                  <div
+                    key={day}
+                    className={cn(
+                      "p-3 text-center border-l border-border",
+                      isToday && "bg-primary/5"
+                    )}
+                  >
+                    <p className={cn(
+                      "text-xs font-semibold uppercase tracking-wider",
+                      isToday ? "text-primary" : "text-muted-foreground"
+                    )}>
+                      {SHORT_DAYS[i]}
+                    </p>
+                    {isToday && (
+                      <div className="mx-auto mt-1 h-1.5 w-1.5 rounded-full bg-primary" />
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Time Grid */}
-            <div className="space-y-1">
-              {HOURS.map((hour) => (
-                <div key={hour} className="grid grid-cols-8 gap-2">
-                  {/* Hour Label */}
-                  <div className="w-20 flex items-center justify-end pr-2">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {formatHour(hour)}
-                    </span>
-                  </div>
-
-                  {/* Day Cells */}
-                  {DAYS.map((day) => {
-                    const task = getTaskForCell(day, hour);
-                    const cellId = `${day}-${hour}`;
-
-                    return (
-                      <TimeCell
-                        key={cellId}
-                        id={cellId}
-                        task={task}
-                        onAddTask={() => handleAddTask(day, hour)}
-                        onToggle={handleToggleTask}
-                        onToggleSubtask={handleToggleSubtask}
-                        onDelete={handleDeleteTask}
-                        onEdit={handleEditTask}
-                      />
-                    );
-                  })}
+            {HOURS.map((hour, hourIdx) => (
+              <div
+                key={hour}
+                className={cn(
+                  "grid grid-cols-[72px_repeat(7,1fr)]",
+                  hourIdx < HOURS.length - 1 && "border-b border-border/50"
+                )}
+              >
+                {/* Hour Label */}
+                <div className="p-2 flex items-start justify-center pt-3 border-r border-border/50">
+                  <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
+                    {formatHourShort(hour)}
+                  </span>
                 </div>
-              ))}
-            </div>
+
+                {/* Day Cells */}
+                {DAYS.map((day) => {
+                  const task = getTaskForCell(day, hour);
+                  const cellId = `${day}-${hour}`;
+                  const isToday = day === todayName && weekOffset === 0;
+
+                  return (
+                    <TimeCell
+                      key={cellId}
+                      id={cellId}
+                      task={task}
+                      isToday={isToday}
+                      onAddTask={() => handleAddTask(day, hour)}
+                      onToggle={handleToggleTask}
+                      onToggleSubtask={handleToggleSubtask}
+                      onDelete={handleDeleteTask}
+                      onEdit={handleEditTask}
+                    />
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -292,6 +320,7 @@ const WeeklyTaskTable = () => {
 interface TimeCellProps {
   id: string;
   task?: Task;
+  isToday: boolean;
   onAddTask: () => void;
   onToggle: (taskId: string) => void;
   onToggleSubtask: (taskId: string, subtaskId: string) => void;
@@ -299,45 +328,41 @@ interface TimeCellProps {
   onEdit: (taskId: string) => void;
 }
 
-const TimeCell = ({
-  id,
-  task,
-  onAddTask,
-  onToggle,
-  onToggleSubtask,
-  onDelete,
-  onEdit,
-}: TimeCellProps) => {
+const TimeCell = ({ id, task, isToday, onAddTask, onToggle, onToggleSubtask, onDelete, onEdit }: TimeCellProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div
       id={id}
-      className="relative min-h-[80px] border border-border rounded-md bg-card hover:bg-secondary/20 transition-colors"
+      className={cn(
+        "relative min-h-[72px] border-l border-border/50 transition-colors group",
+        isToday ? "bg-primary/[0.02]" : "bg-transparent",
+        !task && "hover:bg-secondary/30"
+      )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {task ? (
-        <TaskCard
-          task={task}
-          onToggle={onToggle}
-          onToggleSubtask={onToggleSubtask}
-          onDelete={onDelete}
-          onEdit={onEdit}
-        />
+        <div className="p-1 h-full">
+          <TaskCard
+            task={task}
+            onToggle={onToggle}
+            onToggleSubtask={onToggleSubtask}
+            onDelete={onDelete}
+            onEdit={onEdit}
+          />
+        </div>
       ) : (
-        <>
-          {isHovered && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-primary hover:text-primary hover:bg-secondary opacity-0 hover:opacity-100 transition-opacity"
-              onClick={onAddTask}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          )}
-        </>
+        isHovered && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+            onClick={onAddTask}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        )
       )}
     </div>
   );
