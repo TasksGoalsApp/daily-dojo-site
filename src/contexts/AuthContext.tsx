@@ -8,6 +8,7 @@ interface UserProfile {
   name: string;
   username: string;
   date_of_birth: string | null;
+  avatar_url: string | null;
 }
 
 interface AuthContextType {
