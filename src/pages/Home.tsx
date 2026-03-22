@@ -17,14 +17,12 @@ const Home = () => {
       title: "Goal Tracking",
       description: "Set and track your personal and professional goals",
       link: "/goals",
-      comingSoon: true,
     },
     {
       icon: TrendingUp,
       title: "Habit Building",
       description: "Build lasting habits with daily tracking and streaks",
       link: "/habits",
-      comingSoon: true,
     },
   ];
 
@@ -106,14 +104,6 @@ const Home = () => {
                 className="p-6 hover:shadow-xl transition-all hover:-translate-y-1 bg-card relative overflow-hidden group animate-fade-in"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                {feature.comingSoon && (
-                  <div className="absolute top-4 right-4">
-                    <span className="text-xs bg-accent text-accent-foreground px-2 py-1 rounded-full font-medium">
-                      Coming Soon
-                    </span>
-                  </div>
-                )}
-
                 <div className="mb-4 p-3 bg-gradient-to-br from-primary/10 to-primary-glow/10 rounded-xl w-fit">
                   <feature.icon className="h-8 w-8 text-primary" />
                 </div>
@@ -125,12 +115,9 @@ const Home = () => {
                   <Button
                     variant="ghost"
                     className="w-full justify-between group-hover:bg-secondary"
-                    disabled={feature.comingSoon}
                   >
-                    {feature.comingSoon ? "Coming Soon" : "Explore"}
-                    {!feature.comingSoon && (
-                      <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    )}
+                    Explore
+                    <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
               </Card>
