@@ -13,6 +13,7 @@ const Navigation = () => {
     { title: "Tasks", path: "/tasks", icon: Calendar },
     { title: "Goals", path: "/goals", icon: Target },
     { title: "Habits", path: "/habits", icon: TrendingUp },
+    { title: "About", path: "/about", icon: Info },
   ];
 
   const handleLogout = () => {

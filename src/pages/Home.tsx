@@ -17,14 +17,12 @@ const Home = () => {
       title: "Goal Tracking",
       description: "Set and track your personal and professional goals",
       link: "/goals",
-      comingSoon: true,
     },
     {
       icon: TrendingUp,
       title: "Habit Building",
       description: "Build lasting habits with daily tracking and streaks",
       link: "/habits",
-      comingSoon: true,
     },
   ];
 
