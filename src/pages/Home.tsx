@@ -66,9 +66,11 @@ const Home = () => {
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="shadow-md">
-              Learn More
-            </Button>
+            <Link to="/about">
+              <Button size="lg" variant="outline" className="shadow-md">
+                Learn More
+              </Button>
+            </Link>
           </div>
         </section>
 
