@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Home, Calendar, Target, TrendingUp, LogOut, User } from "lucide-react";
+import { Home, Calendar, Target, TrendingUp, LogOut, User, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "./ui/button";
