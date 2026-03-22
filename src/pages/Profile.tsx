@@ -149,7 +149,52 @@ const Profile = () => {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Error', description: 'Please select an image file', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Error', description: 'Image must be less than 5MB', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl } as any)
+        .eq('user_id', user.id);
+      if (updateError) throw updateError;
+
+      await refreshProfile();
+      toast({ title: 'Success', description: 'Profile photo updated' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to upload photo', variant: 'destructive' });
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   if (!user || !profile) return null;
+
+  const initials = profile.name
+    ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : profile.username?.slice(0, 2).toUpperCase() || 'U';
 
   return (
     <div className="min-h-screen bg-background">
@@ -160,9 +205,29 @@ const Profile = () => {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-primary/10 rounded-full">
-                    <User className="h-6 w-6 text-primary" />
+                <div className="flex items-center gap-4">
+                  {/* Avatar */}
+                  <div className="relative group">
+                    <Avatar className="h-16 w-16 border-2 border-primary/20">
+                      <AvatarImage src={profile.avatar_url || undefined} alt={profile.name} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      className="absolute inset-0 flex items-center justify-center bg-foreground/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    >
+                      <Camera className="h-5 w-5 text-background" />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                    />
                   </div>
                   <div>
                     <CardTitle>Profile Information</CardTitle>
