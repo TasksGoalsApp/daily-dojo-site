@@ -126,8 +126,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSession(null);
   };
 
+  const refreshProfile = async () => {
+    if (user) await fetchProfile(user.id);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, session, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, profile, session, login, register, logout, refreshProfile, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
